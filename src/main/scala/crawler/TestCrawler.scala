@@ -21,7 +21,7 @@ class TestCrawler {
     r
   }
 
-//  val domain = "http://en.wikipedia.org"
+
   val startPage = "/wiki/Main_Page"
   val linkRegex = """\"/wiki/[a-zA-Z\-_]+\"""".r
 
