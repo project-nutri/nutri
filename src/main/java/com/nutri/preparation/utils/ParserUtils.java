@@ -11,8 +11,6 @@ import java.util.*;
  */
 public final class ParserUtils {
     private ParserUtils(){
-//        initMeasuresMap();
-
     }
     private final static Map<String,String> MEASURES_MAP = new HashMap<String, String>();
     private final static int MAX_MEASURE_WORDS = 3;
@@ -48,6 +46,9 @@ public final class ParserUtils {
 //                "штук", "штуки", "штуки"
         //??? пакет пакетик
         MEASURES_MAP.put("г","g");
+        MEASURES_MAP.put("гp.","g");
+        MEASURES_MAP.put("гp","g");
+        MEASURES_MAP.put("грамм","g");
         MEASURES_MAP.put("кг","kg");
         MEASURES_MAP.put("шт","sht");
         MEASURES_MAP.put("шт.","sht");
@@ -57,6 +58,8 @@ public final class ParserUtils {
         MEASURES_MAP.put("зубчиков","sht");
         MEASURES_MAP.put("зубчик","sht");
         MEASURES_MAP.put("зубок","sht");
+        MEASURES_MAP.put("зуб.","sht");
+        MEASURES_MAP.put("зуб","sht");
         MEASURES_MAP.put("зубков","sht");
         MEASURES_MAP.put("вилок","sht");
         MEASURES_MAP.put("вилка","sht");
