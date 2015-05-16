@@ -87,7 +87,7 @@ class SimpleSearch extends Actor with ActorLogging {
         category = doc.get("category"),
         name = doc.get("name"),
         time = doc.get("time"),
-        portions = doc.get("portions"),
+        portions = doc.get("setPortions"),
         url = doc.get("url"),
         img = doc.get("img"),
       calories = doc.get("calories"),

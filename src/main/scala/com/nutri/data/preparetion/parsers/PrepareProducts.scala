@@ -1,6 +1,7 @@
 package com.nutri.data.preparetion.parsers
 
-import com.nutri.data.preparetion.{Indexer, Product}
+import com.nutri.data.preparetion.indexers.{Product, Indexer}
+
 
 
 /**
@@ -27,7 +28,8 @@ object PrepareProducts {
     val products: List[Option[Product]] = parseProduct()
     println("lenght " + products.length)
     println("lenght " + products.flatMap(p => p).length)
-    val indexer = new Indexer("/Users/katerinaglushchenko/productsNutriShortWithMeasuresStemmed")
+//    val indexer = new Indexer("/Users/katerinaglushchenko/productsNutriShortWithMeasuresStemmed")
+    val indexer = new Indexer("/Users/taras-sereda/IdeaProjects/nutri/data/productsNutriShortWithMeasuresStemmed")
 
     //    val indexer = new Indexer("/Users/katerinaglushchenko/productsNutri2")
     products.flatMap(products => products).map(product => indexer.indexProduct(product))

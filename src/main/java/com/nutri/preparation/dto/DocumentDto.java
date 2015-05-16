@@ -110,7 +110,7 @@ public class DocumentDto {
         return portions;
     }
 
-    public void portions(String numberOfPortions) {
+    public void setPortions(String numberOfPortions) {
         this.portions = numberOfPortions;
     }
 
@@ -130,7 +130,7 @@ public class DocumentDto {
                 ", url='" + url + '\'' +
                 ", tags='" + tags + '\'' +
                 ", category='" + category + '\'' +
-                ", portions='" + portions + '\'' +
+                ", setPortions='" + portions + '\'' +
                 ", time='" + time + '\'' +
                 ", img='" + img + '\'' +
 //                ", instruction='" + instruction + '\'' +

@@ -20,6 +20,7 @@ libraryDependencies ++= {
     "org.apache.lucene" % "lucene-core" % "4.0.0",
     "org.apache.lucene" % "lucene-analyzers-common" % "4.0.0",
     "org.apache.lucene" % "lucene-queryparser" % "4.0.0",
-    "org.seleniumhq.selenium" % "selenium-java" % "2.44.0"
+    "org.seleniumhq.selenium" % "selenium-java" % "2.44.0",
+    "org.jsoup" % "jsoup" % "1.7.2"
   )
 }

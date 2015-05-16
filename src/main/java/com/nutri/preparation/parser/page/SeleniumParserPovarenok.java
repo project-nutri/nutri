@@ -81,7 +81,7 @@ public class SeleniumParserPovarenok {
                 String[] items = peaces.getText().split("Количество порций: ");
                 portions = items[1];
             } else {
-                throw new IllegalArgumentException("portions not found");
+                throw new IllegalArgumentException("setPortions not found");
             }
             String img = allElems.findElement(By.className("recipe-img")).findElement(By.tagName("img")).getAttribute("src");
             if(!img.equals("http://www.povarenok.ru/images/recipes/1.gif"))
@@ -90,7 +90,7 @@ public class SeleniumParserPovarenok {
                 result.setImg("");
 
             result.setTime(time);
-            result.portions(portions);
+            result.setPortions(portions);
             result.setUrl(url);
             driver1.close();
 //            System.out.println("!@#$ time "+(new Date().getTime() - timeBench));

@@ -49,7 +49,7 @@ public class IndexerReciept {
         doc.add(new Field("category", docDto.getCategory(), Field.Store.YES, Field.Index.ANALYZED));
         doc.add(new Field("img", docDto.getImg(), Field.Store.YES, Field.Index.ANALYZED));
         doc.add(new Field("time", docDto.getTime(), Field.Store.YES, Field.Index.ANALYZED));
-        doc.add(new Field("portions", docDto.getPortions(), Field.Store.YES, Field.Index.ANALYZED));
+        doc.add(new Field("setPortions", docDto.getPortions(), Field.Store.YES, Field.Index.ANALYZED));
         doc.add(new Field("url", docDto.getUrl(), Field.Store.YES, Field.Index.ANALYZED));
         doc.add(new Field("calories", docDto.getCalories(), Field.Store.YES, Field.Index.ANALYZED));
         doc.add(new Field("proteins", docDto.getProteins(), Field.Store.YES, Field.Index.ANALYZED));
