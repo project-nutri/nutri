@@ -61,6 +61,7 @@ public final class ParserUtils {
         MEASURES_MAP.put("зуб.","sht");
         MEASURES_MAP.put("зуб","sht");
         MEASURES_MAP.put("зубков","sht");
+        MEASURES_MAP.put("пуч.","sht");
         MEASURES_MAP.put("вилок","sht");
         MEASURES_MAP.put("вилка","sht");
         MEASURES_MAP.put("головка","sht");

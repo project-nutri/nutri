@@ -24,7 +24,7 @@ case class Ok(name: String)
 
 case class Fault(name: String)
 
-case class Receipt(ingredients: List[String],
+case class Recipe(ingredients: List[String],
                    instruction: String = "",
                    tags: List[String] = List(),
                    category: String = "",
@@ -33,17 +33,18 @@ case class Receipt(ingredients: List[String],
                    portions: String = "",
                    url: String = "",
                    img: String = "",
-                    calories: String ="",
-                    proteins:String = "",
-                    carbs:String = "",
-                    fats:String = "")
+                   calories: String = "",
+                   proteins: String = "",
+                   carbs: String = "",
+                   fats: String = "")
 
 case class IngredientQuery(searchType: String, ingredients: List[String])
-
+case class NutritionQuery(calories:(Int,Int),prots:(Int,Int),fats:(Int,Int),carbs:(Int,Int))
 case class RequestQuery(ingredientsQuery: List[IngredientQuery],
                         name: List[String],
                         course: List[String],
-                        calories:Int)
+                        ni: NutritionQuery,
+                        time: Int)
 
 class SimpleSearch extends Actor with ActorLogging {
   def formLuceneStringQuery(query: RequestQuery) = {
@@ -54,28 +55,35 @@ class SimpleSearch extends Actor with ActorLogging {
       case _ => ""
     }
     def formFiledQuery(list: List[String], name: String): String = {
-     val str = (for(l <- list) yield "+"+l).mkString(" ")
+      val str = (for (l <- list) yield "+" + l).mkString(" ")
       s"$name: ($str) "
     }
+
     val ingredients = (for {q <- query.ingredientsQuery
                             delimiter = defDelimiter(q.searchType)
     } yield q.ingredients.map(str => delimiter + str).mkString(" ")).mkString(" ")
-
+    def niQuery(from:Int,to:Int) = {
+      if (from==0 && to ==0) None
+      else if(to==0) Some(s" calories: [$from TO 5000]")
+      else Some(s" calories: [$from TO $to]")
+    }
     val result = List(if (!ingredients.isEmpty) Some(s"ingredients:($ingredients) ") else None,
       if (query.course.nonEmpty) Some(formFiledQuery(query.course, "category")) else None,
-      if (query.name.nonEmpty) Some(formFiledQuery(query.name, "name")) else None,
-      if (query.calories!=0) Some(s" calories: [${query.calories - 50} TO ${query.calories + 50}]") else None).map(p=>p).flatMap(p => p).mkString(" AND ")
-
-//    println("compose ingr " + result)
+      if (query.name.nonEmpty && query.name.forall(s => !s.isEmpty)) Some(formFiledQuery(query.name, "name")) else None,
+      niQuery(query.ni.calories._1,query.ni.calories._2),
+      niQuery(query.ni.prots._1,query.ni.prots._2),
+      niQuery(query.ni.fats._1,query.ni.fats._2),
+      niQuery(query.ni.carbs._1,query.ni.carbs._2),
+      if (query.time != 0) Some(s" time: [${query.time - 10} TO ${query.time + 10}]") else None).map(p => p).flatMap(p => p).mkString(" AND ")
+//    println("compose query " + result)
     log.debug("compose ingr " + result)
     result
   }
 
-  def searchByQuery(query: RequestQuery): List[Receipt] = {
+  def searchByQuery(query: RequestQuery): List[Recipe] = {
     val dir: Directory = FSDirectory.open(new File("//Users/katerinaglushchenko/indexPovarenok"))
-//    println(query)
     log.debug(query.toString)
-    val reader:IndexReader = DirectoryReader.open(dir)
+    val reader: IndexReader = DirectoryReader.open(dir)
     val is: IndexSearcher = new IndexSearcher(reader)
     val parser: QueryParser = new QueryParser(Version.LUCENE_40, "ingredients", new StandardAnalyzer(Version.LUCENE_40))
     val q = formLuceneStringQuery(query)
@@ -83,18 +91,18 @@ class SimpleSearch extends Actor with ActorLogging {
     val hits = is.search(formedQuery, 10)
     val res = for {scoreDoc <- hits.scoreDocs
                    doc = is.doc(scoreDoc.doc)
-    } yield Receipt(ingredients = List(doc.get("ingredients")),
-//        instruction = doc.get("instructions"),
+    } yield Recipe(ingredients = List(doc.get("ingredients")),
+        //        instruction = doc.get("instructions"),
         category = doc.get("category"),
         name = doc.get("name"),
         time = doc.get("time"),
-        portions = doc.get("setPortions"),
+        portions = doc.get("portions"),
         url = doc.get("url"),
         img = doc.get("img"),
-      calories = doc.get("calories"),
-      proteins = doc.get("proteins"),
-      fats = doc.get("fats"),
-      carbs = doc.get("carbs"))
+        calories = doc.get("calories"),
+        proteins = doc.get("proteins"),
+        fats = doc.get("fats"),
+        carbs = doc.get("carbs"))
 
     println(res.length)
     reader.close()

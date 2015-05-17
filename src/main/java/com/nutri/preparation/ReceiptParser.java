@@ -26,11 +26,12 @@ public class ReceiptParser {
 
     public static List<String> parseReciept(String fileString) {
         List<String> itemList;
-        String cleanRow = deleteBracesValues(fileString.trim());
+        String cleanRow = deleteBracesValues(fileString.trim()).trim();
 
-        cleanRow = changeComaInNumbers(cleanRow.trim());
-        cleanRow = selectNumberInTwo(cleanRow.trim());
-        cleanRow = cleanAllStuff(cleanRow.trim());
+        cleanRow = changeComaInNumbers(cleanRow);
+        cleanRow = selectNumberInTwo(cleanRow);
+        cleanRow = parseFraction(cleanRow);
+        cleanRow = cleanAllStuff(cleanRow);
         itemList = ParserUtils.tokenizeStringToList(cleanRow, " ");
         replaceMeasures(itemList);
 //        System.out.println(itemList);
@@ -100,6 +101,31 @@ public class ReceiptParser {
         return true;
     }
 
+    private static String parseFraction(String cleanRow){
+        String pattern = "(\\d+/\\d+)";
+        Matcher matcher = Pattern.compile(pattern).matcher(cleanRow);
+        StringBuilder buffer = new StringBuilder();
+        int lastPosition = 0;
+        while (matcher.find()) {
+            int start = matcher.start();
+            int end = matcher.end();
+            buffer.append(cleanRow.substring(lastPosition, start));
+            String numberStr = cleanRow.substring(start, end);
+            int delimPos = numberStr.indexOf('/');
+            float first = Float.valueOf(numberStr.substring(0, delimPos));
+            float last = Float.valueOf(numberStr.substring(delimPos+1,numberStr.length()));
+            float res = first/last;
+            buffer.append(res);
+            lastPosition = end;
+        }
+
+        if (buffer.length() != 0) {
+            return buffer.append(cleanRow.substring(lastPosition)).toString();
+        } else {
+            return cleanRow;
+        }
+    }
+
     private static String selectNumberInTwo(String cleanRow) {
         String pattern = "(\\d+\\s?[-]\\s?\\d+)";
         Matcher matcher = Pattern.compile(pattern).matcher(cleanRow);
@@ -151,7 +177,7 @@ public class ReceiptParser {
 
     private static String cleanAllStuff(String cleanRow) {
 //        String pattern = "[\\W]";
-        String pattern = "[-–:—;,/!@#$%^&*()_+{}\\[\\]|<>/]";
+        String pattern = "[-–:—;,!@#$%^&*()_+{}\\[\\]|<>]";
         String updated = cleanRow.replaceAll(pattern, "");
         pattern = "[\\p{Space}]";
         updated = updated.replaceAll(pattern, " ");

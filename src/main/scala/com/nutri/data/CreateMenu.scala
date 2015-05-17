@@ -11,13 +11,12 @@ import scala.util.{Failure, Success}
 /**
  * Created by katerinaglushchenko on 5/4/15.
  */
-case class OneCourse(category: List[String], percentageCalories: Int)
+case class NutritionPersentage(cals:Int, prots:Int, fats:Int, carbs:Int)
+case class OneCourse(category: List[String], niProportions: NutritionPersentage, time:Int)
 
-case class MenuStructure(ingredientsQuery: List[IngredientQuery], totalCalories: Int, courseList: List[OneCourse])
+case class MenuStructure(ingredientsQuery: List[IngredientQuery], ni: NutritionQuery, courseList: List[OneCourse])
 
-case class MenuResponse(menu: List[List[Receipt]])
-
-//case class CreateMenuRequest()
+case class MenuResponse(menu: List[List[Recipe]])
 
 class CreateMenu extends Actor with ActorLogging {
   implicit val system = ActorSystem("my-system")
@@ -30,11 +29,18 @@ class CreateMenu extends Actor with ActorLogging {
   val searcher = system.actorOf(Props[SimpleSearch], name = "searcher")
 
   def createMenu(menuStructure: MenuStructure) = {
-    val res = (for(course <- menuStructure.courseList) yield searcher ? SearchByQuery(RequestQuery(menuStructure.ingredientsQuery,List(),
-        course.category,menuStructure.totalCalories*course.percentageCalories/100))).map(p=>p.mapTo[List[Receipt]])
+    def ni(proportion:NutritionPersentage) = {
+      val total = menuStructure.ni
+      NutritionQuery((total.calories._1*proportion.cals/100,total.calories._2*proportion.cals/100),
+        (total.prots._1*proportion.prots/100,total.prots._2*proportion.prots/100),
+        (total.fats._1*proportion.fats/100,total.fats._2*proportion.fats/100),
+        (total.carbs._1*proportion.carbs/100,total.carbs._2*proportion.carbs/100))
+    }
+    val res = (for (course <- menuStructure.courseList)
+              yield searcher ? SearchByQuery(RequestQuery(menuStructure.ingredientsQuery, List(),
+                    course.category,ni(course.niProportions),course.time))).map(p => p.mapTo[List[Recipe]])
     val a = Future.sequence(res)
     a pipeTo sender()
- //   res pipeTo sender
   }
 
   override def receive: Receive = {

@@ -8,9 +8,6 @@ import java.util.Date
 import com.nutri.data.preparetion.indexers.IndexerRecipe
 import com.nutri.data.preparetion.utils.{ReadConf, StemmerAnalyzer}
 import com.nutri.preparation.ReceiptParser
-import com.nutri.preparation.dto.DocumentDto
-import com.nutri.preparation.indexer.IndexerReciept
-import com.nutri.preparation.parser.page.SeleniumParserPovarenok
 import org.apache.lucene.index.{DirectoryReader, IndexReader}
 import org.apache.lucene.queryparser.classic.QueryParser
 import org.apache.lucene.search.{TopDocs, IndexSearcher}
@@ -28,7 +25,7 @@ case class ReceiptLine(product: String, weight: String, measure: String)
 case class NutritionInfo(calories: String, proteins: String, carbs: String, fats: String)
 
 case class ParsedRecipe(name: String,
-                        ingrediaents: String,
+                        ingredients: String,
                         category: String,
                         instruction: String,
                         time: String,
@@ -39,8 +36,7 @@ case class ParsedRecipe(name: String,
                         calories: String = "",
                         proteins: String = "",
                         fats: String = "",
-                        carbs: String = ""
-                         )
+                        carbs: String = "")
 
 class PrepareReceipt(ingredients: String) extends ReadConf {
   def getHttp(url: String): Option[String] = {
@@ -102,7 +98,7 @@ class PrepareReceipt(ingredients: String) extends ReadConf {
       val documentDto = parseRecipe(href)
       if (documentDto.isDefined) {
         val recipe = documentDto.get
-        val parser = new PrepareReceipt(recipe.ingrediaents)
+        val parser = new PrepareReceipt(recipe.ingredients)
         val parsedReceipt = parser.parseReceipt
         val ni = parser.calculateCalories(parsedReceipt.toList, recipe.portions.toInt)
         val newRecipe = recipe.copy(calories = ni.calories, fats = ni.fats, proteins = ni.proteins, carbs = ni.carbs)
@@ -122,18 +118,19 @@ class PrepareReceipt(ingredients: String) extends ReadConf {
 
   def calculateCaloriesPer100(reciept: List[ReceiptLine]) = {
     val totalWeight: Double = reciept.foldLeft(0.0)((old, `new`) => old + `new`.weight.toDouble)
-    val portions = (totalWeight / 100).toInt
+    val portions = totalWeight / 100//).toInt
     println(s"total weight $totalWeight, portions - $portions")
     calculateCalories(reciept, portions)
   }
 
-  def calculateCalories(reciept: List[ReceiptLine], portions: Int) = {
+  def calculateCalories(reciept: List[ReceiptLine], portions: Double) = {
     def convertToPortion(i: Double) = (i / portions).toString
 
     val dir: Directory = FSDirectory.open(new File(prodNutriLocation))
     val reader: IndexReader = DirectoryReader.open(dir)
     val is: IndexSearcher = new IndexSearcher(reader)
     val parser: QueryParser = new QueryParser(Version.LUCENE_40, "name", new StemmerAnalyzer())
+
     def logFind(hits: TopDocs, item: ReceiptLine) = {
       val hits = is.search(parser.parse(item.product), 10)
       if (hits.scoreDocs.size > 0)
@@ -143,9 +140,10 @@ class PrepareReceipt(ingredients: String) extends ReadConf {
         false
       }
     }
+   //TODO: reduce another call to lucene when looking for coef, save all in one instance
     val res = for {item <- reciept
                    if !item.weight.isEmpty
-                   hits = is.search(parser.parse(item.product), 10)
+                   hits = is.search(parser.parse(item.product), 1)
                    if logFind(hits, item)
                    doc = is.doc(hits.scoreDocs(0).doc)
                    coef = findCoef(item.product, item.measure)
@@ -154,13 +152,15 @@ class PrepareReceipt(ingredients: String) extends ReadConf {
                    carbs = calculateNutrition(doc.get("carbs").toDouble, item.weight.toDouble, coef, "carbs")
                    proteins = calculateNutrition(doc.get("proteins").toDouble, item.weight.toDouble, coef, "proteins")
     } yield {
-      println(s"!! ${doc.get("name")} - ${item.weight.toDouble}${item.measure}: ${doc.get("calories")} - $calories, $proteins, $carbs, $fats");
+      println(s"For ${item.product}: ${doc.get("name")} - ${item.weight.toDouble}${item.measure} coef = $coef : ${doc.get("calories")} - $calories, $proteins, $carbs, $fats")
       (calories, proteins, carbs, fats)
     }
     val finalNutriInfo = res.foldLeft((0.0, 0.0, 0.0, 0.0))((a: (Double, Double, Double, Double), b: (Double, Double, Double, Double)) => (a._1 + b._1, a._2 + b._2, a._3 + b._3, a._4 + b._4))
     reader.close()
+    val niTotal = NutritionInfo(finalNutriInfo._1.toString, finalNutriInfo._2.toString, finalNutriInfo._3.toString, finalNutriInfo._4.toString)
+    println("total NI for reciept" + niTotal)
     val ni = NutritionInfo(convertToPortion(finalNutriInfo._1), convertToPortion(finalNutriInfo._2), convertToPortion(finalNutriInfo._3), convertToPortion(finalNutriInfo._4))
-    print("total NI for reciept" + ni)
+    print("NI for reciept for portion" + ni)
     ni
   }
 

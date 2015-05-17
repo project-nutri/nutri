@@ -35,7 +35,7 @@ class IndexerRecipe {
   @throws(classOf[IOException])
   def index(recipe: ParsedRecipe) {
     val doc: Document = new Document
-    doc.add(new Field("ingredients", recipe.ingrediaents, Field.Store.YES, Field.Index.ANALYZED))
+    doc.add(new Field("ingredients", recipe.ingredients, Field.Store.YES, Field.Index.ANALYZED))
     doc.add(new Field("instructions", recipe.instruction, Field.Store.YES, Field.Index.ANALYZED))
     doc.add(new Field("name", recipe.name, Field.Store.YES, Field.Index.ANALYZED))
     doc.add(new Field("category", recipe.category, Field.Store.YES, Field.Index.ANALYZED))

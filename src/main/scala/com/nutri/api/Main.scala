@@ -13,10 +13,12 @@ object Main extends App with SimpleRoutingApp with DefaultJsonFormats {
   implicit val searchByNameFormat = jsonFormat1(SearchByName)
   implicit val okFormat = jsonFormat1(Ok)
   implicit val faultFormat = jsonFormat1(Fault)
-  implicit val receiptFormat = jsonFormat13(Receipt)
+  implicit val receiptFormat = jsonFormat13(Recipe)
+  implicit val nutritionQueryFormat = jsonFormat4(NutritionQuery)
   implicit val ingredientQueryFormat = jsonFormat2(IngredientQuery)
-  implicit val queryFormat = jsonFormat4(RequestQuery)
-  implicit val oneCourseFormat = jsonFormat2(OneCourse)
+  implicit val queryFormat = jsonFormat5(RequestQuery)
+  implicit val nutritionPersentageFormat = jsonFormat4(NutritionPersentage)
+  implicit val oneCourseFormat = jsonFormat3(OneCourse)
   implicit val menuStructureFormat = jsonFormat3(MenuStructure)
   implicit val menuResponseFormat = jsonFormat1(MenuResponse)
   val conf = ConfigFactory.load("server.conf")
@@ -37,7 +39,7 @@ object Main extends App with SimpleRoutingApp with DefaultJsonFormats {
       post {
         entity(as[RequestQuery]) { q =>
           complete {
-            (searcher ? SearchByQuery(q)).mapTo[List[Receipt]]
+            (searcher ? SearchByQuery(q)).mapTo[List[Recipe]]
               .map(result => result)
             //.recover { case _ => "error"}
           }
@@ -48,7 +50,7 @@ object Main extends App with SimpleRoutingApp with DefaultJsonFormats {
       post {
         entity(as[MenuStructure]) { q =>
           complete {
-            (menuCreator ? q).mapTo[List[List[Receipt]]]
+            (menuCreator ? q).mapTo[List[List[Recipe]]]
               .map(result => result)
             //.recover { case _ => "error"}
           }
