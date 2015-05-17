@@ -5,7 +5,7 @@ import akka.util.Timeout
 import com.nutri.data._
 import spray.routing.SimpleRoutingApp
 import akka.pattern.ask
-
+import com.typesafe.config.ConfigFactory
 /**
  * Created by katerinaglushchenko on 4/24/15.
  */
@@ -19,7 +19,9 @@ object Main extends App with SimpleRoutingApp with DefaultJsonFormats {
   implicit val oneCourseFormat = jsonFormat2(OneCourse)
   implicit val menuStructureFormat = jsonFormat3(MenuStructure)
   implicit val menuResponseFormat = jsonFormat1(MenuResponse)
-  implicit val system = ActorSystem("my-system")
+  val conf = ConfigFactory.load("server.conf")
+  implicit val system = ActorSystem("my-system", conf)
+
 
   import scala.concurrent.duration._
 

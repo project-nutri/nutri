@@ -66,7 +66,8 @@ class SimpleSearch extends Actor with ActorLogging {
       if (query.name.nonEmpty) Some(formFiledQuery(query.name, "name")) else None,
       if (query.calories!=0) Some(s" calories: [${query.calories - 50} TO ${query.calories + 50}]") else None).map(p=>p).flatMap(p => p).mkString(" AND ")
 
-    println("compose ingr " + result)
+//    println("compose ingr " + result)
+    log.debug("compose ingr " + result)
     result
   }
 
