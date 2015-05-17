@@ -22,6 +22,7 @@ libraryDependencies ++= {
     "org.apache.lucene" % "lucene-queryparser" % "4.0.0",
     "org.seleniumhq.selenium" % "selenium-java" % "2.44.0",
     "org.jsoup" % "jsoup" % "1.7.2",
-    "org.specs2" %% "specs2-core" % "3.6" % "test"
+    "org.specs2" %% "specs2-core" % "3.6" % "test",
+    "com.typesafe" % "config" % "1.3.0"
   )
 }

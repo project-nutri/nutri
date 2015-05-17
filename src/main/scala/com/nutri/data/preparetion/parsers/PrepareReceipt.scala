@@ -6,7 +6,7 @@ import java.nio.charset.Charset
 import java.util.Date
 
 import com.nutri.data.preparetion.indexers.IndexerRecipe
-import com.nutri.data.preparetion.utils.StemmerAnalyzer
+import com.nutri.data.preparetion.utils.{ReadConf, StemmerAnalyzer}
 import com.nutri.preparation.ReceiptParser
 import com.nutri.preparation.dto.DocumentDto
 import com.nutri.preparation.indexer.IndexerReciept
@@ -42,7 +42,7 @@ case class ParsedRecipe(name: String,
                         carbs: String = ""
                          )
 
-class PrepareReceipt(ingredients: String) {
+class PrepareReceipt(ingredients: String) extends ReadConf {
   def getHttp(url: String): Option[String] = {
     val timeout = 60000
     try {
@@ -92,11 +92,10 @@ class PrepareReceipt(ingredients: String) {
   def runRecieptIndexer() = {
     val time: Long = new Date().getTime
     System.out.println("start app")
-    //    val urlParser: SeleniumParserPovarenok = new SeleniumParserPovarenok("http://www.povarenok.ru/recipes/", 3)
-    val indexDir: String = "/Users/taras-sereda/IdeaProjects/nutri/data/indexPovarenok2"
+
     val indexer = new IndexerRecipe(indexDir)
-    val startPage: Int = 107000
-    val endPage: Int = 108000
+    val startPage: Int = 108000
+    val endPage: Int = 108010
 
     for (i <- startPage until endPage) {
       val href: String = "http://www.povarenok.ru/recipes/show/" + i + "/"
@@ -108,11 +107,14 @@ class PrepareReceipt(ingredients: String) {
         val ni = parser.calculateCalories(parsedReceipt.toList, recipe.portions.toInt)
         val newRecipe = recipe.copy(calories = ni.calories, fats = ni.fats, proteins = ni.proteins, carbs = ni.carbs)
         indexer.index(newRecipe)
+
       }
-      if (i % 20 == 0) {
-        print("ZzzzZzzz...")
-        Thread.sleep(20000)
-      }
+      val initRandom = new scala.util.Random()
+      val sleepCoef = initRandom.nextFloat()
+      val sleepAmount = sleepCoef*5000
+
+      Thread.sleep(sleepAmount.toInt)
+      println(s"ZzzzZzzz... for ${sleepAmount.toInt} msec")
     }
     indexer.close
     System.out.println("end " + (new Date().getTime - time))
@@ -127,8 +129,8 @@ class PrepareReceipt(ingredients: String) {
 
   def calculateCalories(reciept: List[ReceiptLine], portions: Int) = {
     def convertToPortion(i: Double) = (i / portions).toString
-    val dir: Directory = FSDirectory.open(new File("/Users/katerinaglushchenko/productsNutriShortWithMeasuresStemmed"))
-    //    val dir: Directory = FSDirectory.open(new File("/Users/taras-sereda/IdeaProjects/nutri/data/productsNutriShortWithMeasuresStemmed"))
+
+    val dir: Directory = FSDirectory.open(new File(prodNutriLocation))
     val reader: IndexReader = DirectoryReader.open(dir)
     val is: IndexSearcher = new IndexSearcher(reader)
     val parser: QueryParser = new QueryParser(Version.LUCENE_40, "name", new StemmerAnalyzer())
@@ -169,9 +171,8 @@ class PrepareReceipt(ingredients: String) {
   }
 
   def findCoefInDb(product: String, measure: String): Double = {
-    val dirPath = "/Users/katerinaglushchenko/productsNutriShortWithMeasuresStemmed"
-    //    val dirPath = "/Users/taras-sereda/IdeaProjects/nutri/data/productsNutriShortWithMeasuresStemmed"
-    val dir: Directory = FSDirectory.open(new File(dirPath))
+
+    val dir: Directory = FSDirectory.open(new File(prodNutriLocation))
     val reader: IndexReader = DirectoryReader.open(dir)
     val is: IndexSearcher = new IndexSearcher(reader)
     val parser: QueryParser = new QueryParser(Version.LUCENE_40, "name", new StemmerAnalyzer())
