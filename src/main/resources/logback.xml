@@ -1,7 +1,7 @@
 <configuration>
     <!-- Properties are set below, alternatively they can be set as system 
          properties or passed as command line arguments -->
-    <property name="LOG_HOME" value="/Users/taras-sereda/IdeaProjects/nutri/src/main/resources" />
+    <property name="LOG_HOME" value="src/main/resources" />
     <property name="LOG_FILE_NAME" value="application_nutri.log" />
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">

@@ -1,12 +1,15 @@
 package com.nutri.data
 
+import java.io.FileNotFoundException
+
 import akka.actor.{ActorSystem, Props, ActorLogging, Actor}
 import akka.util.Timeout
 import akka.pattern.ask
 import akka.pattern.pipe
+import com.nutri.api.{CustomFormats, DefaultJsonFormats}
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
-
+import spray.json._
 
 /**
  * Created by katerinaglushchenko on 5/4/15.
@@ -18,10 +21,9 @@ case class MenuStructure(ingredientsQuery: List[IngredientQuery], ni: NutritionQ
 
 case class MenuResponse(menu: List[List[Recipe]])
 
-class CreateMenu extends Actor with ActorLogging {
+class CreateMenu extends Actor with ActorLogging with CustomFormats{
   implicit val system = ActorSystem("my-system")
   import scala.concurrent.duration._
-
   implicit val timeout = Timeout(2.seconds)
 
   implicit def executionContext = system.dispatcher
@@ -43,9 +45,26 @@ class CreateMenu extends Actor with ActorLogging {
     a pipeTo sender()
   }
 
+  def createMenuFromTemplate(path: String) = {
+    val filePath: String = s"src/main/resources/menu.templates/$path.json"
+    val fileString:String = try {
+      io.Source.fromFile(filePath, "UTF-8").mkString
+    }catch{
+      case e:FileNotFoundException =>
+        log.error("file not found in service createMenuFromTemplate"+e.getMessage)
+        sender ! Fault("no such template")
+        ""
+    }
+
+    val menuStructure = menuStructureFormat.read(JsonParser(fileString))
+    createMenu(menuStructure)
+  }
+
   override def receive: Receive = {
     case req: MenuStructure =>
       createMenu(req)
+    case path: String =>
+      createMenuFromTemplate(path)
     case _ => sender ! Fault("no text")
   }
 }
