@@ -4,6 +4,7 @@ import java.io.File
 
 import akka.actor.{ActorLogging, Actor}
 import org.apache.lucene.analysis.standard.StandardAnalyzer
+import org.apache.lucene.document.Document
 import org.apache.lucene.index.{DirectoryReader, IndexReader}
 import org.apache.lucene.queryparser.classic.QueryParser
 import org.apache.lucene.search.{TopDocs, Query, IndexSearcher}
@@ -50,7 +51,7 @@ class SimpleSearch extends Actor with ActorLogging {
   def formLuceneStringQuery(query: RequestQuery) = {
     def defDelimiter(searchType: String) = searchType match {
       case "Any" => ""
-      case "All" => "+"
+      case "All" | "Only" => "+"
       case "None" => "-"
       case _ => ""
     }
@@ -80,8 +81,8 @@ class SimpleSearch extends Actor with ActorLogging {
     result
   }
 
-  def searchByQuery(query: RequestQuery): List[Recipe] = {
-    val dir: Directory = FSDirectory.open(new File("//Users/katerinaglushchenko/indexPovarenok"))
+  def searchByQuery(query: RequestQuery) = {
+    val dir: Directory = FSDirectory.open(new File("//Users/katerinaglushchenko/indexPovarenok"))//TODO open once in instance of actor
     log.debug(query.toString)
     val reader: IndexReader = DirectoryReader.open(dir)
     val is: IndexSearcher = new IndexSearcher(reader)
@@ -91,6 +92,42 @@ class SimpleSearch extends Actor with ActorLogging {
     val hits = is.search(formedQuery, 10)
     val res = for {scoreDoc <- hits.scoreDocs
                    doc = is.doc(scoreDoc.doc)
+                   //if query.doc.get("ingredients").split(";").size.equals(ingrAmount) )
+    } yield Recipe(ingredients = List(doc.get("ingredients")),
+        //        instruction = doc.get("instructions"),
+        category = doc.get("category"),
+        name = doc.get("name"),
+        time = doc.get("time"),
+        portions = doc.get("portions"),
+        url = doc.get("url"),
+        img = doc.get("img"),
+        calories = doc.get("calories"),
+        proteins = doc.get("proteins"),
+        fats = doc.get("fats"),
+        carbs = doc.get("carbs"))
+
+    println(res.length)
+    reader.close()
+    res.toList
+  }
+
+  def searchOnly(query: RequestQuery) = {
+    val dir: Directory = FSDirectory.open(new File("//Users/katerinaglushchenko/indexPovarenok"))//TODO open once in instance of actor
+    log.debug(query.toString)
+    val reader: IndexReader = DirectoryReader.open(dir)
+    val is: IndexSearcher = new IndexSearcher(reader)
+    val parser: QueryParser = new QueryParser(Version.LUCENE_40, "ingredients", new StandardAnalyzer(Version.LUCENE_40))
+    val q = formLuceneStringQuery(query)
+    val formedQuery = parser.parse(q)
+    val hits = is.search(formedQuery, 10)
+    val ingrAmount = query.ingredientsQuery(0).ingredients.size
+    def checkDog (doc:Document) = {
+      log.debug(""+doc.get("ingredients").split(";"))
+      (doc.get("ingredients").split(";").size-1).equals(ingrAmount)
+    }
+    val res = for {scoreDoc <- hits.scoreDocs
+                   doc = is.doc(scoreDoc.doc)
+                   if checkDog(doc)//.get("ingredients").split(";").size.equals(ingrAmount)
     } yield Recipe(ingredients = List(doc.get("ingredients")),
         //        instruction = doc.get("instructions"),
         category = doc.get("category"),
@@ -111,7 +148,8 @@ class SimpleSearch extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case SearchByQuery(query) =>
-      sender ! searchByQuery(query)
+      sender ! searchOnly(query)
+//      sender ! searchByQuery(query)
     case _ => sender ! Fault("searcher fault")
   }
 }
