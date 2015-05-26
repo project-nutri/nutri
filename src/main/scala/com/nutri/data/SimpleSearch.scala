@@ -26,21 +26,23 @@ case class Ok(name: String)
 case class Fault(name: String)
 
 case class Recipe(ingredients: List[String],
-                   instruction: String = "",
-                   tags: List[String] = List(),
-                   category: String = "",
-                   name: String = "",
-                   time: String = "",
-                   portions: String = "",
-                   url: String = "",
-                   img: String = "",
-                   calories: String = "",
-                   proteins: String = "",
-                   carbs: String = "",
-                   fats: String = "")
+                  instruction: String = "",
+                  tags: List[String] = List(),
+                  category: String = "",
+                  name: String = "",
+                  time: String = "",
+                  portions: String = "",
+                  url: String = "",
+                  img: String = "",
+                  calories: String = "",
+                  proteins: String = "",
+                  carbs: String = "",
+                  fats: String = "")
 
 case class IngredientQuery(searchType: String, ingredients: List[String])
-case class NutritionQuery(calories:(Int,Int),prots:(Int,Int),fats:(Int,Int),carbs:(Int,Int))
+
+case class NutritionQuery(calories: (Int, Int), prots: (Int, Int), fats: (Int, Int), carbs: (Int, Int))
+
 case class RequestQuery(ingredientsQuery: List[IngredientQuery],
                         name: List[String],
                         course: List[String],
@@ -50,8 +52,8 @@ case class RequestQuery(ingredientsQuery: List[IngredientQuery],
 class SimpleSearch extends Actor with ActorLogging {
   def formLuceneStringQuery(query: RequestQuery) = {
     def defDelimiter(searchType: String) = searchType match {
-      case "Any" => ""
-      case "All" | "Only" => "+"
+      case "Any" | "Only" => ""
+      case "All"  => "+"
       case "None" => "-"
       case _ => ""
     }
@@ -63,73 +65,42 @@ class SimpleSearch extends Actor with ActorLogging {
     val ingredients = (for {q <- query.ingredientsQuery
                             delimiter = defDelimiter(q.searchType)
     } yield q.ingredients.map(str => delimiter + str).mkString(" ")).mkString(" ")
-    def niQuery(from:Int,to:Int) = {
-      if (from==0 && to ==0) None
-      else if(to==0) Some(s" calories: [$from TO 5000]")
+    def niQuery(from: Int, to: Int) = {
+      if (from == 0 && to == 0) None
+      else if (to == 0) Some(s" calories: [$from TO 5000]")
       else Some(s" calories: [$from TO $to]")
     }
     val result = List(if (!ingredients.isEmpty) Some(s"ingredients:($ingredients) ") else None,
       if (query.course.nonEmpty) Some(formFiledQuery(query.course, "category")) else None,
       if (query.name.nonEmpty && query.name.forall(s => !s.isEmpty)) Some(formFiledQuery(query.name, "name")) else None,
-      niQuery(query.ni.calories._1,query.ni.calories._2),
-      niQuery(query.ni.prots._1,query.ni.prots._2),
-      niQuery(query.ni.fats._1,query.ni.fats._2),
-      niQuery(query.ni.carbs._1,query.ni.carbs._2),
+      niQuery(query.ni.calories._1, query.ni.calories._2),
+      niQuery(query.ni.prots._1, query.ni.prots._2),
+      niQuery(query.ni.fats._1, query.ni.fats._2),
+      niQuery(query.ni.carbs._1, query.ni.carbs._2),
       if (query.time != 0) Some(s" time: [${query.time - 10} TO ${query.time + 10}]") else None).map(p => p).flatMap(p => p).mkString(" AND ")
-//    println("compose query " + result)
-    log.debug("compose ingr " + result)
+    log.debug("formed query " + result)
     result
   }
 
   def searchByQuery(query: RequestQuery) = {
-    val dir: Directory = FSDirectory.open(new File("//Users/katerinaglushchenko/indexPovarenok"))//TODO open once in instance of actor
-    log.debug(query.toString)
+    val dir: Directory = FSDirectory.open(new File("//Users/katerinaglushchenko/indexPovarenok")) //TODO open once in instance of actor
     val reader: IndexReader = DirectoryReader.open(dir)
     val is: IndexSearcher = new IndexSearcher(reader)
     val parser: QueryParser = new QueryParser(Version.LUCENE_40, "ingredients", new StandardAnalyzer(Version.LUCENE_40))
     val q = formLuceneStringQuery(query)
     val formedQuery = parser.parse(q)
     val hits = is.search(formedQuery, 10)
-    val res = for {scoreDoc <- hits.scoreDocs
-                   doc = is.doc(scoreDoc.doc)
-                   //if query.doc.get("ingredients").split(";").size.equals(ingrAmount) )
-    } yield Recipe(ingredients = List(doc.get("ingredients")),
-        //        instruction = doc.get("instructions"),
-        category = doc.get("category"),
-        name = doc.get("name"),
-        time = doc.get("time"),
-        portions = doc.get("portions"),
-        url = doc.get("url"),
-        img = doc.get("img"),
-        calories = doc.get("calories"),
-        proteins = doc.get("proteins"),
-        fats = doc.get("fats"),
-        carbs = doc.get("carbs"))
 
-    println(res.length)
-    reader.close()
-    res.toList
-  }
-
-  def searchOnly(query: RequestQuery) = {
-    val dir: Directory = FSDirectory.open(new File("//Users/katerinaglushchenko/indexPovarenok"))//TODO open once in instance of actor
-    log.debug(query.toString)
-    val reader: IndexReader = DirectoryReader.open(dir)
-    val is: IndexSearcher = new IndexSearcher(reader)
-    val parser: QueryParser = new QueryParser(Version.LUCENE_40, "ingredients", new StandardAnalyzer(Version.LUCENE_40))
-    val q = formLuceneStringQuery(query)
-    val formedQuery = parser.parse(q)
-    val hits = is.search(formedQuery, 10)
-    val ingrAmount = query.ingredientsQuery(0).ingredients.size
-    def checkDog (doc:Document) = {
-      log.debug(""+doc.get("ingredients").split(";"))
-      (doc.get("ingredients").split(";").size-1).equals(ingrAmount)
+    def checkDog(doc: Document) = {
+      val docLst = doc.get("ingredients").trim.init.split(";")
+      val filteredOnly = query.ingredientsQuery.filter(q=>q.searchType=="Only")
+      docLst.forall(ingr=>filteredOnly.map(i=>i.ingredients.exists{l=>ingr.contains(l)}).contains(true))
     }
+
     val res = for {scoreDoc <- hits.scoreDocs
                    doc = is.doc(scoreDoc.doc)
-                   if checkDog(doc)//.get("ingredients").split(";").size.equals(ingrAmount)
+                   if !query.ingredientsQuery.map(i=>i.searchType=="Only").contains(true) || checkDog(doc)
     } yield Recipe(ingredients = List(doc.get("ingredients")),
-        //        instruction = doc.get("instructions"),
         category = doc.get("category"),
         name = doc.get("name"),
         time = doc.get("time"),
@@ -141,15 +112,15 @@ class SimpleSearch extends Actor with ActorLogging {
         fats = doc.get("fats"),
         carbs = doc.get("carbs"))
 
-    println(res.length)
+    log.debug(s"found ${res.size} recipe(s)")
     reader.close()
     res.toList
   }
 
   override def receive: Receive = {
     case SearchByQuery(query) =>
-      sender ! searchOnly(query)
-//      sender ! searchByQuery(query)
-    case _ => sender ! Fault("searcher fault")
+      sender ! searchByQuery(query)
+    case _ =>
+      sender ! Fault("searcher fault")
   }
 }
