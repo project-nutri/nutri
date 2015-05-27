@@ -3,6 +3,7 @@ package com.nutri.api
 import akka.actor.{Props, ActorSystem}
 import akka.util.Timeout
 import com.nutri.data._
+import com.nutri.data.preparetion.parsers.RecipeLine
 import spray.routing.SimpleRoutingApp
 import akka.pattern.ask
 import com.typesafe.config.ConfigFactory
@@ -54,6 +55,15 @@ object Main extends App with SimpleRoutingApp with CustomFormats {
               //.recover { case _ => "error"}
             }
 
+        }
+      }
+    }~
+    path("ingridientsFromMenu"){
+      post{
+        entity(as[List[Recipe]]){recipe =>
+        complete{
+          (searcher ? recipe).mapTo[List[RecipeLine]].map(result=>result)
+        }
         }
       }
     }

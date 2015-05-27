@@ -20,7 +20,7 @@ import scala.io.Source
 /**
  * Created by katerinaglushchenko on 5/11/15.
  */
-case class ReceiptLine(product: String, weight: String, measure: String)
+case class RecipeLine(product: String, weight: String, measure: String)
 
 case class NutritionInfo(calories: String, proteins: String, carbs: String, fats: String)
 
@@ -116,14 +116,14 @@ class PrepareReceipt(ingredients: String) extends ReadConf {
     System.out.println("end " + (new Date().getTime - time))
   }
 
-  def calculateCaloriesPer100(reciept: List[ReceiptLine]) = {
+  def calculateCaloriesPer100(reciept: List[RecipeLine]) = {
     val totalWeight: Double = reciept.foldLeft(0.0)((old, `new`) => old + `new`.weight.toDouble)
     val portions = totalWeight / 100//).toInt
     println(s"total weight $totalWeight, portions - $portions")
     calculateCalories(reciept, portions)
   }
 
-  def calculateCalories(reciept: List[ReceiptLine], portions: Double) = {
+  def calculateCalories(reciept: List[RecipeLine], portions: Double) = {
     def convertToPortion(i: Double) = (i / portions).toString
 
     val dir: Directory = FSDirectory.open(new File(prodNutriLocation))
@@ -131,7 +131,7 @@ class PrepareReceipt(ingredients: String) extends ReadConf {
     val is: IndexSearcher = new IndexSearcher(reader)
     val parser: QueryParser = new QueryParser(Version.LUCENE_40, "name", new StemmerAnalyzer())
 
-    def logFind(hits: TopDocs, item: ReceiptLine) = {
+    def logFind(hits: TopDocs, item: RecipeLine) = {
       val hits = is.search(parser.parse(item.product), 10)
       if (hits.scoreDocs.size > 0)
         true
@@ -218,7 +218,7 @@ class PrepareReceipt(ingredients: String) extends ReadConf {
 
   def parseReceipt = {
     for {ingredient <- ingredients.split("\n")
-         p = ReceiptParser.parseReciept(ingredient)} yield ReceiptLine(p.get(0), p.get(1), p.get(2))
+         p = ReceiptParser.parseReciept(ingredient)} yield RecipeLine(p.get(0), p.get(1), p.get(2))
   }
 }
 

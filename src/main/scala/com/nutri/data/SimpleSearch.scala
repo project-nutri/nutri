@@ -3,6 +3,8 @@ package com.nutri.data
 import java.io.File
 
 import akka.actor.{ActorLogging, Actor}
+import com.nutri.data.preparetion.parsers.RecipeLine
+import com.nutri.preparation.ReceiptParser
 import org.apache.lucene.analysis.standard.StandardAnalyzer
 import org.apache.lucene.document.Document
 import org.apache.lucene.index.{DirectoryReader, IndexReader}
@@ -117,9 +119,19 @@ class SimpleSearch extends Actor with ActorLogging {
     res.toList
   }
 
+  def formIngredientList(recipes:List[Recipe]) = {
+   val fullList = for {r <- recipes
+         ingredient <- r.ingredients(0).trim.init.split(";")
+         p = ReceiptParser.parseReciept(ingredient)} yield RecipeLine(p.get(0), p.get(1), p.get(2))
+    val grouped = fullList.groupBy(_.product).map(m=>m._2.fold(RecipeLine("","0",""))((f,s)=>RecipeLine(s.product,(f.weight.toDouble+s.weight.toDouble).toString,s.measure)))
+    grouped
+  }
+
   override def receive: Receive = {
     case SearchByQuery(query) =>
       sender ! searchByQuery(query)
+    case q:List[Recipe] =>
+      sender ! formIngredientList(q)
     case _ =>
       sender ! Fault("searcher fault")
   }
