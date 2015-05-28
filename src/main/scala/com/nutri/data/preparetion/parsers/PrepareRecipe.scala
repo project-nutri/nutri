@@ -24,6 +24,10 @@ case class RecipeLine(product: String, weight: String, measure: String)
 
 case class NutritionInfo(calories: String, proteins: String, carbs: String, fats: String)
 
+case class NutritionInfoDouble(calories: Double, proteins: Double, carbs: Double, fats: Double)
+
+case class FullNutritionInfo(products: Map[String, NutritionInfoDouble], total: NutritionInfo)
+
 case class ParsedRecipe(name: String,
                         ingredients: String,
                         category: String,
@@ -38,7 +42,7 @@ case class ParsedRecipe(name: String,
                         fats: String = "",
                         carbs: String = "")
 
-class PrepareReceipt(ingredients: String) extends ReadConf {
+class PrepareRecipe(ingredients: String) extends ReadConf {
   def getHttp(url: String): Option[String] = {
     val timeout = 60000
     try {
@@ -98,9 +102,9 @@ class PrepareReceipt(ingredients: String) extends ReadConf {
       val documentDto = parseRecipe(href)
       if (documentDto.isDefined) {
         val recipe = documentDto.get
-        val parser = new PrepareReceipt(recipe.ingredients)
+        val parser = new PrepareRecipe(recipe.ingredients)
         val parsedReceipt = parser.parseReceipt
-        val ni = parser.calculateCalories(parsedReceipt.toList, recipe.portions.toInt)
+        val ni = parser.aggregateCalculatedCalories(calculateCalories(parsedReceipt.toList), recipe.portions.toInt)
         val newRecipe = recipe.copy(calories = ni.calories, fats = ni.fats, proteins = ni.proteins, carbs = ni.carbs)
         indexer.index(newRecipe)
 
@@ -116,16 +120,19 @@ class PrepareReceipt(ingredients: String) extends ReadConf {
     System.out.println("end " + (new Date().getTime - time))
   }
 
-  def calculateCaloriesPer100(reciept: List[RecipeLine]) = {
+  def portionsIn100(reciept: List[RecipeLine]) ={
     val totalWeight: Double = reciept.foldLeft(0.0)((old, `new`) => old + `new`.weight.toDouble)
-    val portions = totalWeight / 100//).toInt
+    val portions = totalWeight / 100
     println(s"total weight $totalWeight, portions - $portions")
-    calculateCalories(reciept, portions)
+    portions
   }
 
-  def calculateCalories(reciept: List[RecipeLine], portions: Double) = {
-    def convertToPortion(i: Double) = (i / portions).toString
+  def calculateCaloriesPer100(reciept: List[RecipeLine]) = {
+    val portions = portionsIn100(reciept)
+    aggregateCalculatedCalories(calculateCalories(reciept), portions)
+  }
 
+  def calculateCalories(reciept: List[RecipeLine]) = {
     val dir: Directory = FSDirectory.open(new File(prodNutriLocation))
     val reader: IndexReader = DirectoryReader.open(dir)
     val is: IndexSearcher = new IndexSearcher(reader)
@@ -140,7 +147,7 @@ class PrepareReceipt(ingredients: String) extends ReadConf {
         false
       }
     }
-   //TODO: reduce another call to lucene when looking for coef, save all in one instance
+    //TODO: reduce another call to lucene when looking for coef, save all in one instance
     val res = for {item <- reciept
                    if !item.weight.isEmpty
                    hits = is.search(parser.parse(item.product), 1)
@@ -153,13 +160,18 @@ class PrepareReceipt(ingredients: String) extends ReadConf {
                    proteins = calculateNutrition(doc.get("proteins").toDouble, item.weight.toDouble, coef, "proteins")
     } yield {
       println(s"For ${item.product}: ${doc.get("name")} - ${item.weight.toDouble}${item.measure} coef = $coef : ${doc.get("calories")} - $calories, $proteins, $carbs, $fats")
-      (calories, proteins, carbs, fats)
+      NutritionInfoDouble(calories, proteins, carbs, fats)
     }
-    val finalNutriInfo = res.foldLeft((0.0, 0.0, 0.0, 0.0))((a: (Double, Double, Double, Double), b: (Double, Double, Double, Double)) => (a._1 + b._1, a._2 + b._2, a._3 + b._3, a._4 + b._4))
     reader.close()
-    val niTotal = NutritionInfo(finalNutriInfo._1.toString, finalNutriInfo._2.toString, finalNutriInfo._3.toString, finalNutriInfo._4.toString)
+    res
+  }
+
+  def aggregateCalculatedCalories(res:List[NutritionInfoDouble], portions: Double) = {
+    val finalNutriInfo = res.foldLeft(NutritionInfoDouble(0.0, 0.0, 0.0, 0.0))((a: NutritionInfoDouble, b: NutritionInfoDouble) => NutritionInfoDouble(a.calories + b.calories, a.proteins + b.proteins, a.carbs + b.carbs, a.fats + b.fats))
+    def convertToPortion(i: Double) = (i / portions).toString
+    val niTotal = NutritionInfo(finalNutriInfo.calories.toString, finalNutriInfo.proteins.toString, finalNutriInfo.carbs.toString, finalNutriInfo.fats.toString)
     println("total NI for reciept" + niTotal)
-    val ni = NutritionInfo(convertToPortion(finalNutriInfo._1), convertToPortion(finalNutriInfo._2), convertToPortion(finalNutriInfo._3), convertToPortion(finalNutriInfo._4))
+    val ni = NutritionInfo(convertToPortion(finalNutriInfo.calories), convertToPortion(finalNutriInfo.proteins), convertToPortion(finalNutriInfo.carbs), convertToPortion(finalNutriInfo.fats))
     print("NI for reciept for portion" + ni)
     ni
   }
@@ -224,7 +236,7 @@ class PrepareReceipt(ingredients: String) extends ReadConf {
 
 object ParseSite {
   def main(args: Array[String]) {
-    val pr = new PrepareReceipt("")
+    val pr = new PrepareRecipe("")
     pr.runRecieptIndexer()
   }
 }

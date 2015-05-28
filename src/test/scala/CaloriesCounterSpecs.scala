@@ -1,4 +1,4 @@
-import com.nutri.data.preparetion.parsers.PrepareReceipt
+import com.nutri.data.preparetion.parsers.PrepareRecipe
 import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
 
@@ -9,7 +9,7 @@ class CaloriesCounterSpecs extends Specification {
   class DefaultScope extends Scope{
     def calculateCals(path:String)={
       val rec = io.Source.fromFile(path, "UTF-8").mkString
-      val parser = new PrepareReceipt(rec)
+      val parser = new PrepareRecipe(rec)
       val parsedReceipt = parser.parseReceipt
       parser.calculateCaloriesPer100(parsedReceipt.toList)
     }

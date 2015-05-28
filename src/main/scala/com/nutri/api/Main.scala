@@ -3,7 +3,7 @@ package com.nutri.api
 import akka.actor.{Props, ActorSystem}
 import akka.util.Timeout
 import com.nutri.data._
-import com.nutri.data.preparetion.parsers.RecipeLine
+import com.nutri.data.preparetion.parsers.{NutritionInfoDouble, FullNutritionInfo, RecipeLine}
 import spray.routing.SimpleRoutingApp
 import akka.pattern.ask
 import com.typesafe.config.ConfigFactory
@@ -62,11 +62,30 @@ object Main extends App with SimpleRoutingApp with CustomFormats {
       post{
         entity(as[List[Recipe]]){recipe =>
         complete{
-          (searcher ? recipe).mapTo[List[RecipeLine]].map(result=>result)
+          (searcher ? recipe).mapTo[List[RecipeLine]].map(result=>result)//TODO maybe should take List[List[Recipe]] as menu described?
         }
+        }
+      }
+    }~
+    path("describeCaloriesCounting"){
+      parameters("forHundred".as[Boolean] ? false) { forHundred =>
+        post {
+          entity(as[Recipe]) { recipe =>
+            complete {
+              (searcher ? GetNutritionByRecipe(recipe, forHundred)).mapTo[FullNutritionInfo].map(result => result)
+            }
+          }
+        }
+      }
+    }~
+    path("caloriesForProduct"){
+      post{
+        entity(as[List[RecipeLine]]){products =>
+        complete{
+          (searcher ? GetNutritionByProducts(products)).mapTo[List[NutritionInfoDouble]].map(r => r)
+          }
         }
       }
     }
 }
-
 }

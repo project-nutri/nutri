@@ -3,7 +3,7 @@ package com.nutri.data
 import java.io.File
 
 import akka.actor.{ActorLogging, Actor}
-import com.nutri.data.preparetion.parsers.RecipeLine
+import com.nutri.data.preparetion.parsers.{FullNutritionInfo, RecipeLine}
 import com.nutri.preparation.ReceiptParser
 import org.apache.lucene.analysis.standard.StandardAnalyzer
 import org.apache.lucene.document.Document
@@ -12,7 +12,7 @@ import org.apache.lucene.queryparser.classic.QueryParser
 import org.apache.lucene.search.{TopDocs, Query, IndexSearcher}
 import org.apache.lucene.store.{FSDirectory, Directory}
 import org.apache.lucene.util.Version
-
+import com.nutri.data.preparetion.parsers.PrepareRecipe
 
 /**
  * Created by katerinaglushchenko on 4/24/15.
@@ -22,6 +22,10 @@ case class SearchByName(name: String)
 case class SearchByList(name: List[String])
 
 case class SearchByQuery(query: RequestQuery)
+
+case class GetNutritionByRecipe(recipe: Recipe, getInfoBy100: Boolean)
+
+case class GetNutritionByProducts(product: List[RecipeLine])
 
 case class Ok(name: String)
 
@@ -127,11 +131,30 @@ class SimpleSearch extends Actor with ActorLogging {
     grouped
   }
 
+  def getFullNutritionInfo(recipe:Recipe, forHundred: Boolean) = {
+    val parsedRecipe = formIngredientList(List(recipe)).toList
+    val ni = new PrepareRecipe("").calculateCalories(parsedRecipe)
+    val portions = forHundred match {
+      case true => new PrepareRecipe("").portionsIn100(parsedRecipe)
+      case false => recipe.portions.toDouble
+    }
+    val total = new PrepareRecipe("").aggregateCalculatedCalories(ni,portions)
+    FullNutritionInfo(parsedRecipe.map(p=>p.product).zip(ni).toMap, total)
+  }
+
+  def getProductNI(products: List[RecipeLine]) = {
+    new PrepareRecipe("").calculateCalories(products)
+  }
+
   override def receive: Receive = {
     case SearchByQuery(query) =>
       sender ! searchByQuery(query)
     case q:List[Recipe] =>
       sender ! formIngredientList(q)
+    case GetNutritionByRecipe(recipe, forHundred) =>
+      sender ! getFullNutritionInfo(recipe, forHundred)
+    case GetNutritionByProducts(products) =>
+      sender ! getProductNI(products)
     case _ =>
       sender ! Fault("searcher fault")
   }
