@@ -229,7 +229,7 @@ class PrepareRecipe(ingredients: String) extends ReadConf {
   }
 
   def parseReceipt = {
-    for {ingredient <- ingredients.split("\n")
+    for {ingredient <- ingredients.split("; ")
          p = ReceiptParser.parseReciept(ingredient)} yield RecipeLine(p.get(0), p.get(1), p.get(2))
   }
 }
