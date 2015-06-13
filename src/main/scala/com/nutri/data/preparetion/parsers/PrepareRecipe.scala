@@ -74,9 +74,11 @@ class PrepareRecipe(ingredients: String) extends ReadConf {
       val title = allElements.getElementsByTag("h1")(0).text()
       val ingridientsList = parsedPage.getElementsByClass(ingridientToken)(0).getElementsByTag("li")
       val ingridientsStr = ingridientsList.map(item => item.text()).mkString("; ")
-
+      println(ingridientsList)
+      println(ingridientsStr)
       val categoryList = allElements.getElementsByClass("recipe-infoline")(0).getElementsByTag("a")
       val category = if (!categoryList.isEmpty) categoryList(0).text() else return None
+      println("caterory: "+category)
       val instruction = parsedPage.getElementsByClass("recipe-text").text()
       val rTime = allElements.getElementsByTag("time").text()
       val dishPeaces = allElements.getElementsByClass("recipe-time-peaces").text()
@@ -94,6 +96,7 @@ class PrepareRecipe(ingredients: String) extends ReadConf {
     System.out.println("start app")
 
     val indexer = new IndexerRecipe(indexDir)
+    println("indexDir: "+indexDir)
     val startPage: Int = 108000
     val endPage: Int = 108010
 
@@ -168,7 +171,7 @@ class PrepareRecipe(ingredients: String) extends ReadConf {
 
   def aggregateCalculatedCalories(res:List[NutritionInfoDouble], portions: Double) = {
     val finalNutriInfo = res.foldLeft(NutritionInfoDouble(0.0, 0.0, 0.0, 0.0))((a: NutritionInfoDouble, b: NutritionInfoDouble) => NutritionInfoDouble(a.calories + b.calories, a.proteins + b.proteins, a.carbs + b.carbs, a.fats + b.fats))
-    def convertToPortion(i: Double) = (i / portions).toString
+    def convertToPortion(i: Double) = f"${(i / portions)}%07.0f"
     val niTotal = NutritionInfo(finalNutriInfo.calories.toString, finalNutriInfo.proteins.toString, finalNutriInfo.carbs.toString, finalNutriInfo.fats.toString)
     println("total NI for reciept" + niTotal)
     val ni = NutritionInfo(convertToPortion(finalNutriInfo.calories), convertToPortion(finalNutriInfo.proteins), convertToPortion(finalNutriInfo.carbs), convertToPortion(finalNutriInfo.fats))

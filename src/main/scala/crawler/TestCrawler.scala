@@ -5,6 +5,9 @@ import java.net.URL
 import java.nio.charset.Charset
 import com.google.common.io.Files
 import com.nutri.preparation.dto.DocumentDto
+import org.apache.http.client.methods.HttpGet
+import org.apache.http.impl.client.HttpClientBuilder
+import sun.net.www.http.HttpClient
 
 import scala.io.Source
 import scala.collection.JavaConversions._
@@ -12,6 +15,10 @@ import org.jsoup.select.Elements
 import org.jsoup.nodes.Document
 import org.jsoup.Jsoup
 //import dispatch.jsoup.JSoupHttp._
+
+
+import java.net._
+
 /**
  * Created by katerinaglushchenko on 5/10/15.
  */
@@ -43,15 +50,18 @@ class TestCrawler {
   }
 
   def gethttp2(url:String) ={
-  val timeout = 60000
-    val conn = new URL(url).openConnection()
+
+    val proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("31.170.178.41", 8080))
+    val timeout = 60000
+    val conn = new URL(url).openConnection(proxy)
     conn.setRequestProperty("User-Agent" ,"Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)")
     conn.setConnectTimeout(timeout)
     conn.setReadTimeout(timeout)
-    val inputStream = conn.getInputStream
 
+    val inputStream = conn.getInputStream
     val src = Source.fromInputStream(inputStream)(Charset.forName("Windows-1251"))
     src.mkString
+
   }
   def parseRecipe(url:String) = {
     val ingridientToken = "recipe-ing"

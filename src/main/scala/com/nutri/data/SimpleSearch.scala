@@ -14,6 +14,8 @@ import org.apache.lucene.store.{FSDirectory, Directory}
 import org.apache.lucene.util.Version
 import com.nutri.data.preparetion.parsers.PrepareRecipe
 
+import com.nutri.data.preparetion.utils.ReadConf
+
 /**
  * Created by katerinaglushchenko on 4/24/15.
  */
@@ -55,7 +57,7 @@ case class RequestQuery(ingredientsQuery: List[IngredientQuery],
                         ni: NutritionQuery,
                         time: Int)
 
-class SimpleSearch extends Actor with ActorLogging {
+class SimpleSearch extends Actor with ActorLogging with ReadConf {
   def formLuceneStringQuery(query: RequestQuery) = {
     def defDelimiter(searchType: String) = searchType match {
       case "Any" | "Only" => ""
@@ -72,6 +74,7 @@ class SimpleSearch extends Actor with ActorLogging {
                             delimiter = defDelimiter(q.searchType)
     } yield q.ingredients.map(str => delimiter + str).mkString(" ")).mkString(" ")
     def niQuery(from: Int, to: Int) = {
+      // not only for calories, should be parametrized by different type of ni info [calories,prots,fats,carbs]
       if (from == 0 && to == 0) None
       else if (to == 0) Some(s" calories: [$from TO 5000]")
       else Some(s" calories: [$from TO $to]")
@@ -89,11 +92,13 @@ class SimpleSearch extends Actor with ActorLogging {
   }
 
   def searchByQuery(query: RequestQuery) = {
-    val dir: Directory = FSDirectory.open(new File("//Users/katerinaglushchenko/indexPovarenok")) //TODO open once in instance of actor
+    val dir: Directory = FSDirectory.open(new File(indexDir)) //TODO open once in instance of actor
     val reader: IndexReader = DirectoryReader.open(dir)
     val is: IndexSearcher = new IndexSearcher(reader)
     val parser: QueryParser = new QueryParser(Version.LUCENE_40, "ingredients", new StandardAnalyzer(Version.LUCENE_40))
     val q = formLuceneStringQuery(query)
+//    val q2 = "*:*"
+//    val hits = is.search(parser.parse(q2),10)
     val formedQuery = parser.parse(q)
     val hits = is.search(formedQuery, 10)
 
@@ -105,7 +110,7 @@ class SimpleSearch extends Actor with ActorLogging {
 
     val res = for {scoreDoc <- hits.scoreDocs
                    doc = is.doc(scoreDoc.doc)
-                   if !query.ingredientsQuery.map(i=>i.searchType=="Only").contains(true) || checkDog(doc)
+                //   if !query.ingredientsQuery.map(i=>i.searchType=="Only").contains(true) || checkDog(doc)
     } yield Recipe(ingredients = List(doc.get("ingredients")),
         category = doc.get("category"),
         name = doc.get("name"),

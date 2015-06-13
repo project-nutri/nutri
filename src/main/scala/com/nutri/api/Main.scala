@@ -16,7 +16,7 @@ object Main extends App with SimpleRoutingApp with CustomFormats {
 
   import scala.concurrent.duration._
 
-  implicit val timeout = Timeout(2.seconds)
+  implicit val timeout = Timeout(20.seconds)
 
   implicit def executionContext = system.dispatcher
 

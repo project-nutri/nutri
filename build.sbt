@@ -25,6 +25,6 @@ libraryDependencies ++= {
     "com.typesafe" % "config" % "1.2.1",
     "ch.qos.logback" % "logback-classic" % "1.1.2",
     "com.typesafe.akka" %% "akka-slf4j" % "2.3.6",
-    "com.datastax.cassandra" %% "cassandra-driver-core" % "2.1.5"
+    "com.datastax.cassandra" % "cassandra-driver-core" % "2.1.5"
   )
 }

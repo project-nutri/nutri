@@ -10,14 +10,14 @@ import com.typesafe.config.ConfigFactory
 trait ReadConf {
   val computername = InetAddress.getLocalHost().getHostName()
   val config = ConfigFactory.load("server.conf")
-  val prefix = if (computername == "Tarass-MacBook-Pro.local") "taras" else "katerina"
+  val prefix = if (computername == "Tarass-MacBook-Pro-2.local") "taras" else "katerina"
   val prodNutriLocation = config.getString(s"$prefix.prodNutriLocation")
   val indexDir = config.getString(s"$prefix.indexDir")
 }
 
 object Try{
   def main(args: Array[String]) {
-    val computername = InetAddress.getLocalHost().getHostName();
+    val computername = InetAddress.getLocalHost().getHostName()
     println(computername)
   }
 }

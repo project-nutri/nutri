@@ -33,6 +33,9 @@ class CreateMenu extends Actor with ActorLogging with CustomFormats{
   def createMenu(menuStructure: MenuStructure) = {
     def ni(proportion:NutritionPersentage) = {
       val total = menuStructure.ni
+      println(total.calories._1)
+      println(proportion.cals)
+      println(total.calories._1*proportion.cals/100)
       NutritionQuery((total.calories._1*proportion.cals/100,total.calories._2*proportion.cals/100),
         (total.prots._1*proportion.prots/100,total.prots._2*proportion.prots/100),
         (total.fats._1*proportion.fats/100,total.fats._2*proportion.fats/100),
@@ -41,6 +44,7 @@ class CreateMenu extends Actor with ActorLogging with CustomFormats{
     val res = (for (course <- menuStructure.courseList)
               yield searcher ? SearchByQuery(RequestQuery(menuStructure.ingredientsQuery, List(),
                     course.category,ni(course.niProportions),course.time))).map(p => p.mapTo[List[Recipe]])
+    //  isn't list a sequance???
     val a = Future.sequence(res)
     a pipeTo sender()
   }

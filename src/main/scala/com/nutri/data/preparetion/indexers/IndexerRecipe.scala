@@ -3,8 +3,8 @@ package com.nutri.data.preparetion.indexers
 
 import com.nutri.data.preparetion.parsers.ParsedRecipe
 import com.nutri.data.preparetion.utils.StemmerAnalyzer
-import org.apache.lucene.document.Document
-import org.apache.lucene.document.Field
+import org.apache.lucene.analysis.standard.StandardAnalyzer
+import org.apache.lucene.document.{IntField, Document, Field}
 import org.apache.lucene.index.IndexWriter
 import org.apache.lucene.index.IndexWriterConfig
 import org.apache.lucene.store.Directory
@@ -23,7 +23,7 @@ class IndexerRecipe {
   def this(indexDir: String) {
     this()
     val dir: Directory = FSDirectory.open(new File(indexDir))
-    val config: IndexWriterConfig = new IndexWriterConfig(Version.LUCENE_40, new StemmerAnalyzer)
+    val config: IndexWriterConfig = new IndexWriterConfig(Version.LUCENE_40, new StandardAnalyzer(Version.LUCENE_40))
     writer = new IndexWriter(dir, config)
   }
 
@@ -41,13 +41,16 @@ class IndexerRecipe {
     doc.add(new Field("category", recipe.category, Field.Store.YES, Field.Index.ANALYZED))
     doc.add(new Field("img", recipe.img, Field.Store.YES, Field.Index.ANALYZED))
     doc.add(new Field("time", recipe.time, Field.Store.YES, Field.Index.ANALYZED))
-    doc.add(new Field("setPortions", recipe.portions, Field.Store.YES, Field.Index.ANALYZED))
+    doc.add(new Field("portions", recipe.portions, Field.Store.YES, Field.Index.ANALYZED))
     doc.add(new Field("url", recipe.url, Field.Store.YES, Field.Index.ANALYZED))
     doc.add(new Field("calories", recipe.calories, Field.Store.YES, Field.Index.ANALYZED))
+//    doc.add(new IntField("calories", recipe.calories.toDouble.ceil.toInt, Field.Store.YES))
     doc.add(new Field("proteins", recipe.proteins, Field.Store.YES, Field.Index.ANALYZED))
     doc.add(new Field("fats", recipe.fats, Field.Store.YES, Field.Index.ANALYZED))
     doc.add(new Field("carbs", recipe.carbs, Field.Store.YES, Field.Index.ANALYZED))
     writer.addDocument(doc)
+    println(doc)
+
     System.out.println("indexed " + writer.numDocs)
   }
 }
